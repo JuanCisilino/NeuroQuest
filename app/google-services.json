@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "646390398515",
+    "project_id": "neuroquest",
+    "storage_bucket": "neuroquest.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:646390398515:android:0b6cbb6db1b3e21c08ad46",
+        "android_client_info": {
+          "package_name": "com.frost.neuroquest"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "646390398515-ie8h0huu2t0pvpbolitaf6n2h9gji4tp.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.frost.neuroquest",
+            "certificate_hash": "5f0a74278385eb4f08dc6ca5000eb66edb91d89c"
+          }
+        },
+        {
+          "client_id": "646390398515-fr5evdvra79bppgs4da444lahfgciol4.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAoJYBLTX38XAukZ6VqOHeY71JN1imzm2w"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "646390398515-fr5evdvra79bppgs4da444lahfgciol4.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

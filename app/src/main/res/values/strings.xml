@@ -9,4 +9,8 @@
     <string name="shared_pref_name">Nombre</string>
     <string name="shared_pref_email">Email</string>
     <string name="shared_pref_points">Puntos</string>
+    <string name="banner_ad_unit_id">ca-app-pub-6484756253190029/9470379847</string>
+    <string name="error_message">Se ha producido un error autenticando al usuario</string>
+    <string name="error">Error</string>
+
 </resources>
