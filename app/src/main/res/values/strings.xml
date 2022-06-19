@@ -4,5 +4,9 @@
     <string name="title_dashboard">Mapa</string>
     <string name="google_maps_key" templateMergeStrategy="preserve" translatable="false">AIzaSyDdak8WmD83Gd1AyjCkBor5ONgd-TyEyn4</string>
     <string name="allow">You need to accept location permissions to use this app</string>
-
+    <string name="login_text">Seleccione su cuenta\npara ingresar:</string>
+    <string name="loading_message">Cargando...</string>
+    <string name="shared_pref_name">Nombre</string>
+    <string name="shared_pref_email">Email</string>
+    <string name="shared_pref_points">Puntos</string>
 </resources>

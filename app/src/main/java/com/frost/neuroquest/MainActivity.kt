@@ -1,5 +1,7 @@
 package com.frost.neuroquest
 
+import android.content.Context
+import android.content.Intent
 import android.os.Bundle
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import androidx.appcompat.app.AppCompatActivity
@@ -12,6 +14,12 @@ import com.frost.neuroquest.databinding.ActivityMainBinding
 class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
+
+    companion object{
+        fun start(context: Context){
+            context.startActivity(Intent(context, MainActivity::class.java))
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
