@@ -1,27 +1,24 @@
 package com.frost.neuroquest.ui.mapa
 
-import android.Manifest
-import android.content.pm.PackageManager
-import android.os.Build
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.core.app.ActivityCompat
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
-import com.frost.neuroquest.R
+import com.frost.neuroquest.requestPermission
 import com.frost.neuroquest.databinding.FragmentDashboardBinding
+import com.frost.neuroquest.hasPermission
+import com.frost.neuroquest.logEventToCrashlytics
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.MarkerOptions
-import pub.devrel.easypermissions.AppSettingsDialog
 import pub.devrel.easypermissions.EasyPermissions
 import java.lang.Exception
 
-class DashboardFragment : Fragment(), OnMapReadyCallback, EasyPermissions.PermissionCallbacks {
+class DashboardFragment : Fragment(), OnMapReadyCallback {
 
     private var _binding: FragmentDashboardBinding? = null
     private lateinit var googleMap: GoogleMap
@@ -53,34 +50,10 @@ class DashboardFragment : Fragment(), OnMapReadyCallback, EasyPermissions.Permis
 
     override fun onMapReady(p0: GoogleMap) {
         googleMap = p0
-        checkPermission()
-        googleMap.isMyLocationEnabled = true
+        if (hasPermission(requireContext())) googleMap.isMyLocationEnabled = true
         val latLng = getLocationFromAddress()
         googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(latLng, 16F))
         googleMap.addMarker(MarkerOptions().position(latLng))
-    }
-
-    private fun checkPermission(){
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
-            EasyPermissions.requestPermissions(this, getString(R.string.allow), 0,
-                Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)
-        } else {
-            EasyPermissions.requestPermissions(this, getString(R.string.allow), 0,
-                Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.ACCESS_BACKGROUND_LOCATION)
-        }
-    }
-
-    override fun onPermissionsGranted(requestCode: Int, perms: MutableList<String>) { }
-
-    override fun onPermissionsDenied(requestCode: Int, perms: MutableList<String>) {
-        if (EasyPermissions.somePermissionPermanentlyDenied(this, perms))
-            AppSettingsDialog.Builder(this).build().show() else checkPermission()
-    }
-
-    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>,
-                                            grantResults: IntArray) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        EasyPermissions.onRequestPermissionsResult(requestCode, permissions, grantResults, this)
     }
 
     private fun getLocationFromAddress(): LatLng {
@@ -93,7 +66,7 @@ class DashboardFragment : Fragment(), OnMapReadyCallback, EasyPermissions.Permis
                 pointResult = LatLng(location.latitude, location.longitude)
             }
         } catch (ex: Exception) {
-            // TODO: fire event in Firebase or similar
+            logEventToCrashlytics(ex.message!!)
             ex.printStackTrace()
         } finally {
             return pointResult
