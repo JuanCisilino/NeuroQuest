@@ -34,8 +34,8 @@ class LoginActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         MobileAds.initialize(this)
         setBinding()
-        setAds()
         setBtns()
+        setAds()
     }
 
     private fun setAds() {
