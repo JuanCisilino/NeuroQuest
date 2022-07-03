@@ -1,39 +1,33 @@
 package com.frost.neuroquest
 
-import android.Manifest
-import android.annotation.SuppressLint
-import android.content.ContentValues.TAG
 import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageManager
-import android.location.Location
-import android.location.LocationManager
 import android.os.Bundle
-import android.os.Looper
-import android.util.Log
-import android.widget.Toast
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.app.ActivityCompat
+import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.findNavController
 import androidx.navigation.ui.AppBarConfiguration
 import androidx.navigation.ui.setupActionBarWithNavController
 import androidx.navigation.ui.setupWithNavController
 import com.frost.neuroquest.databinding.ActivityMainBinding
-import com.google.android.gms.location.FusedLocationProviderClient
-import com.google.android.gms.location.LocationCallback
-import com.google.android.gms.location.LocationRequest
-import com.google.android.gms.location.LocationRequest.PRIORITY_HIGH_ACCURACY
-import com.google.android.gms.location.LocationResult
+import com.frost.neuroquest.model.Places
+import com.frost.neuroquest.ui.mapa.DashboardViewModel
+import com.google.firebase.ktx.Firebase
+import com.google.firebase.remoteconfig.FirebaseRemoteConfigSettings
+import com.google.firebase.remoteconfig.ktx.remoteConfig
+import com.google.gson.GsonBuilder
+import com.google.gson.reflect.TypeToken
 import pub.devrel.easypermissions.EasyPermissions
-import java.util.concurrent.TimeUnit
 
 class MainActivity : AppCompatActivity(), EasyPermissions.PermissionCallbacks {
 
     private lateinit var binding: ActivityMainBinding
-    private lateinit var fusedLocationProviderClient: FusedLocationProviderClient
-    private lateinit var locationRequest: LocationRequest
-    private var currentLocation: Location? = null
+
+    private lateinit var viewModel : DashboardViewModel
+    private val firebaseRemoteConfig = Firebase.remoteConfig
+    private val gson = GsonBuilder().create()
+    private val userPrefs = UserPrefs(this)
 
     companion object{
         fun start(context: Context){
@@ -43,8 +37,9 @@ class MainActivity : AppCompatActivity(), EasyPermissions.PermissionCallbacks {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        fusedLocationProviderClient = FusedLocationProviderClient(this)
-        if (hasLocationPermission(this)) requestPermission() else getCurrentLocation()
+        viewModel = ViewModelProvider(this)[DashboardViewModel::class.java]
+        setFirebaseRemoteConfig()
+        if (hasLocationPermission(this)) requestPermission()
 
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
@@ -61,46 +56,46 @@ class MainActivity : AppCompatActivity(), EasyPermissions.PermissionCallbacks {
         navView.setupWithNavController(navController)
     }
 
-    @SuppressLint("MissingPermission")
-    private fun getCurrentLocation() {
-        locationRequest = LocationRequest().apply {
-            interval = TimeUnit.SECONDS.toMillis(4)
-            fastestInterval = TimeUnit.SECONDS.toMillis(1)
-            priority = PRIORITY_HIGH_ACCURACY
-        }
-        fusedLocationProviderClient.requestLocationUpdates(
-            locationRequest,
-            locationCallback,
-            Looper.getMainLooper())
-    }
-
-    private val locationCallback = object : LocationCallback() {
-        override fun onLocationResult(p0: LocationResult?) {
-            p0?.lastLocation?.let {
-                currentLocation = it
-                currentLocation?.latitude = it.latitude
-                currentLocation?.longitude = it.longitude
-                Toast.makeText(
-                    this@MainActivity,
-                    "{${it.latitude}},{${it.longitude}}",
-                    Toast.LENGTH_LONG).show()
-            }
-            removeTask()
-        }
-    }
-
-    private fun removeTask(){
-        val removeTask = fusedLocationProviderClient.removeLocationUpdates(locationCallback)
-        removeTask.addOnCompleteListener { task ->
-            if (task.isSuccessful) {
-                Log.d(TAG, "Location Callback removed.")
-            } else {
-                Log.d(TAG, "Failed to remove Location Callback.")
+    private fun setFirebaseRemoteConfig() {
+        setMinimalInterval()
+        firebaseRemoteConfig.fetchAndActivate().addOnCompleteListener { task ->
+            val exception = task.exception?.message
+            when {
+                task.isSuccessful -> getRemoteConfig()
+                exception != null -> showAlert()
             }
         }
     }
+
+    //TODO ELIMINAR ESTE METODO CUANDO TERMINE ETAPA DE PRUEBA
+    private fun setMinimalInterval() {
+        val configSettings = FirebaseRemoteConfigSettings.Builder()
+            .setMinimumFetchIntervalInSeconds(5)
+            .build()
+        firebaseRemoteConfig.setConfigSettingsAsync(configSettings)
+    }
+
+    private fun getRemoteConfig(){
+        val lugares = firebaseRemoteConfig.getString("lugares")
+        CurrentUser.lugares = gson.fromJson(lugares, object : TypeToken<List<Places>>() {}.type)
+        CurrentUser.puntos = getPuntos()
+        CurrentUser.generateLatLongList()
+    }
+
+    private fun getPuntos(): ArrayList<Int> {
+        val puntos = userPrefs.getString("Puntos")
+        return if (puntos != null && puntos.isNotEmpty()){
+            trimPuntos(puntos) } else { ArrayList() }
+    }
+
+    private fun trimPuntos(s: String):ArrayList<Int> {
+        TODO("Recortar s , " +
+                "dividirlo en una lista de numeros " +
+                "y despues manejarlo con los ids de la lista")
+    }
+
     override fun onPermissionsGranted(requestCode: Int, perms: MutableList<String>) {
-        getCurrentLocation()
+
     }
 
     override fun onPermissionsDenied(requestCode: Int, perms: MutableList<String>) {

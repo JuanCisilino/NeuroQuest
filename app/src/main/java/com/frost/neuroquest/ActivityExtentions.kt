@@ -8,7 +8,6 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import androidx.core.app.ActivityCompat
-import androidx.fragment.app.Fragment
 import com.google.firebase.analytics.FirebaseAnalytics
 import com.google.firebase.auth.AuthCredential
 import com.google.firebase.auth.FirebaseAuth

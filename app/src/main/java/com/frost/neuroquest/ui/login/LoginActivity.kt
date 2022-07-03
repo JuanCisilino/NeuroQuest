@@ -1,11 +1,7 @@
 package com.frost.neuroquest.ui.login
 
-import android.accessibilityservice.GestureDescription
-import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
-import android.os.Handler
-import android.view.View
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.ViewModelProvider
 import com.frost.neuroquest.*
@@ -52,6 +48,7 @@ class LoginActivity : AppCompatActivity() {
         val usuario = viewModel.getUser()
         if (!usuario?.nombre.isNullOrEmpty()) {
             logEventAnalytics("Ingreso", usuario!!.email)
+            CurrentUser.saveCurrentUser(usuario.nombre, usuario.email)
             goToMainActivity()
         }
     }
