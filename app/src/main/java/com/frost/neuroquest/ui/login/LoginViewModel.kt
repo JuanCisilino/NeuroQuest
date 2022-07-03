@@ -2,6 +2,7 @@ package com.frost.neuroquest.ui.login
 
 import android.content.Context
 import androidx.lifecycle.ViewModel
+import com.frost.neuroquest.CurrentUser
 import com.frost.neuroquest.R
 import com.frost.neuroquest.UserPrefs
 import com.frost.neuroquest.model.User
@@ -21,6 +22,7 @@ class LoginViewModel: ViewModel() {
         userPrefs.save(contextApp.getString(R.string.shared_pref_email), user.email)
         userPrefs.save(contextApp.getString(R.string.shared_pref_name), user.nombre)
         userPrefs.save(contextApp.getString(R.string.shared_pref_points), user.puntos)
+        CurrentUser.saveCurrentUser(user.nombre, user.email)
     }
 
     fun getUser(): User? {
