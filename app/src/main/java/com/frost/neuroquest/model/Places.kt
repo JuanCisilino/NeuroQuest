@@ -6,5 +6,6 @@ data class Places(
     val nombre : String,
     val latitude : Double,
     val longitude : Double,
-    val image_url: String
+    val image_url: String,
+    val url: String
 )

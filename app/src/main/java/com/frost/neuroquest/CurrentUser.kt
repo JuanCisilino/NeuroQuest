@@ -12,7 +12,8 @@ class CurrentUser: Application(){
         var email: String?=null
         var puntos = ArrayList<Int>()
         var lugares = ArrayList<Places>()
-        var latLngList = ArrayList<LatLng>()
+        var disponibles = ArrayList<Places>()
+        var latLngList = ArrayList<Pair<LatLng, String>>()
 
         fun saveCurrentUser(name: String, mail: String){
             this.nombre = name
@@ -22,7 +23,7 @@ class CurrentUser: Application(){
         fun generateLatLongList() {
             lugares.forEach {
                 val latLng = LatLng(it.latitude, it.longitude)
-                this.latLngList.add(latLng)
+                this.latLngList.add(Pair(latLng, it.nombre))
             }
         }
     }

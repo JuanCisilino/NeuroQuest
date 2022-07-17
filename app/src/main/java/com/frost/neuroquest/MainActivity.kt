@@ -1,8 +1,17 @@
 package com.frost.neuroquest
 
+import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.content.IntentSender
+import android.content.pm.PackageManager
+import android.net.Uri
+import android.os.Build
 import android.os.Bundle
+import android.provider.Settings
+import android.util.Log
+import android.widget.Toast
+import androidx.annotation.RequiresApi
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.ViewModelProvider
@@ -10,24 +19,43 @@ import androidx.navigation.findNavController
 import androidx.navigation.ui.AppBarConfiguration
 import androidx.navigation.ui.setupActionBarWithNavController
 import androidx.navigation.ui.setupWithNavController
+import com.frost.neuroquest.GeofenceBroadcastReceiver.Companion.ACTION_GEOFENCE_EVENT
 import com.frost.neuroquest.databinding.ActivityMainBinding
+import com.frost.neuroquest.helpers.*
 import com.frost.neuroquest.model.Places
+import com.frost.neuroquest.ui.LoadingDialog
 import com.frost.neuroquest.ui.mapa.DashboardViewModel
+import com.google.android.gms.common.api.ResolvableApiException
+import com.google.android.gms.location.*
+import com.google.android.material.snackbar.Snackbar
 import com.google.firebase.ktx.Firebase
 import com.google.firebase.remoteconfig.FirebaseRemoteConfigSettings
 import com.google.firebase.remoteconfig.ktx.remoteConfig
 import com.google.gson.GsonBuilder
 import com.google.gson.reflect.TypeToken
-import pub.devrel.easypermissions.EasyPermissions
+import java.util.concurrent.TimeUnit
 
-class MainActivity : AppCompatActivity(), EasyPermissions.PermissionCallbacks {
+class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
-
+    private val geofencePendingIntent: PendingIntent by lazy {
+        val intent = Intent(this, GeofenceBroadcastReceiver::class.java)
+        intent.action = ACTION_GEOFENCE_EVENT
+        PendingIntent.getBroadcast(this, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT)
+    }
+    private val REQUEST_FOREGROUND_AND_BACKGROUND_PERMISSION_RESULT_CODE = 3 // random unique value
+    private val GEOFENCE_RADIUS_IN_METERS = 200f
+    private val GEOFENCE_EXPIRATION_IN_MILLISECONDS: Long = TimeUnit.HOURS.toMillis(1)
+    private val REQUEST_TURN_DEVICE_LOCATION_ON = 29
+    private val TAG = "NeuroQuestMainActivity"
+    private val LOCATION_PERMISSION_INDEX = 0
+    private val BACKGROUND_LOCATION_PERMISSION_INDEX = 1
     private lateinit var viewModel : DashboardViewModel
+    private lateinit var geofencingClient: GeofencingClient
     private val firebaseRemoteConfig = Firebase.remoteConfig
     private val gson = GsonBuilder().create()
     private val userPrefs = UserPrefs(this)
+    private var loadingDialog = LoadingDialog(R.string.loading_message)
 
     companion object{
         fun start(context: Context){
@@ -35,14 +63,16 @@ class MainActivity : AppCompatActivity(), EasyPermissions.PermissionCallbacks {
         }
     }
 
+    @RequiresApi(Build.VERSION_CODES.Q)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        viewModel = ViewModelProvider(this)[DashboardViewModel::class.java]
-        setFirebaseRemoteConfig()
-        if (hasLocationPermission(this)) requestPermission()
-
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        // Create channel for notifications
+        createChannel(this )
+        viewModel = ViewModelProvider(this)[DashboardViewModel::class.java]
+        geofencingClient = LocationServices.getGeofencingClient(this)
+        setFirebaseRemoteConfig()
 
         val navView: BottomNavigationView = binding.navView
 
@@ -57,6 +87,7 @@ class MainActivity : AppCompatActivity(), EasyPermissions.PermissionCallbacks {
     }
 
     private fun setFirebaseRemoteConfig() {
+        loadingDialog.show(supportFragmentManager)
         setMinimalInterval()
         firebaseRemoteConfig.fetchAndActivate().addOnCompleteListener { task ->
             val exception = task.exception?.message
@@ -64,6 +95,7 @@ class MainActivity : AppCompatActivity(), EasyPermissions.PermissionCallbacks {
                 task.isSuccessful -> getRemoteConfig()
                 exception != null -> showAlert()
             }
+            loadingDialog.dismiss()
         }
     }
 
@@ -77,15 +109,17 @@ class MainActivity : AppCompatActivity(), EasyPermissions.PermissionCallbacks {
 
     private fun getRemoteConfig(){
         val lugares = firebaseRemoteConfig.getString("lugares")
-        CurrentUser.lugares = gson.fromJson(lugares, object : TypeToken<List<Places>>() {}.type)
+        if (CurrentUser.lugares.isEmpty()) CurrentUser.lugares = gson.fromJson(lugares, object : TypeToken<List<Places>>() {}.type)
+        viewModel.lugares = CurrentUser.lugares
         CurrentUser.puntos = getPuntos()
         CurrentUser.generateLatLongList()
+        if (!hasLocationPermission(this)) requestForegroundAndBackgroundLocationPermissions()
+        else checkDeviceLocationSettingsAndStartGeofence()
     }
 
     private fun getPuntos(): ArrayList<Int> {
         val puntos = userPrefs.getString("Puntos")
-        return if (puntos != null && puntos.isNotEmpty()){
-            trimPuntos(puntos) } else { ArrayList() }
+        return if (puntos != null && puntos.isNotEmpty()){ trimPuntos(puntos) } else { ArrayList() }
     }
 
     private fun trimPuntos(s: String):ArrayList<Int> {
@@ -94,13 +128,111 @@ class MainActivity : AppCompatActivity(), EasyPermissions.PermissionCallbacks {
                 "y despues manejarlo con los ids de la lista")
     }
 
-    override fun onPermissionsGranted(requestCode: Int, perms: MutableList<String>) {
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
 
+        if (
+            grantResults.isEmpty() ||
+            grantResults[LOCATION_PERMISSION_INDEX] == PackageManager.PERMISSION_DENIED ||
+            (requestCode == REQUEST_FOREGROUND_AND_BACKGROUND_PERMISSION_RESULT_CODE &&
+                    grantResults[BACKGROUND_LOCATION_PERMISSION_INDEX] ==
+                    PackageManager.PERMISSION_DENIED))
+        {
+            Snackbar.make(
+                binding.root,
+                "No aceptaste y tenes que aceptar",
+                Snackbar.LENGTH_INDEFINITE
+            )
+                .setAction("Settings") {
+                    startActivity(Intent().apply {
+                        action = Settings.ACTION_APPLICATION_DETAILS_SETTINGS
+                        data = Uri.fromParts("package", BuildConfig.APPLICATION_ID, null)
+                        flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                    })
+                }.show()
+        } else {
+            checkDeviceLocationSettingsAndStartGeofence()
+        }
     }
 
-    override fun onPermissionsDenied(requestCode: Int, perms: MutableList<String>) {
-        requestPermission()
+    private fun checkDeviceLocationSettingsAndStartGeofence(resolve:Boolean = true) {
+        val locationRequest = LocationRequest.create().apply {
+            priority = LocationRequest.PRIORITY_LOW_POWER
+        }
+        val builder = LocationSettingsRequest.Builder().addLocationRequest(locationRequest)
+
+        val settingsClient = LocationServices.getSettingsClient(this)
+        val locationSettingsResponseTask =
+            settingsClient.checkLocationSettings(builder.build())
+
+        locationSettingsResponseTask.addOnFailureListener { exception ->
+            if (exception is ResolvableApiException && resolve){
+                // Location settings are not satisfied, but this can be fixed
+                // by showing the user a dialog.
+                try {
+                    // Show the dialog by calling startResolutionForResult(),
+                    // and check the result in onActivityResult().
+                    exception.startResolutionForResult(this,
+                        REQUEST_TURN_DEVICE_LOCATION_ON)
+                } catch (sendEx: IntentSender.SendIntentException) {
+                    Log.d(TAG, "Error geting location settings resolution: " + sendEx.message)
+                }
+            } else {
+                Snackbar.make(
+                    binding.root,
+                    "No podemos cachar la ubicacion", Snackbar.LENGTH_INDEFINITE
+                ).setAction(android.R.string.ok) {
+                    checkDeviceLocationSettingsAndStartGeofence()
+                }.show()
+            }
+        }
+        locationSettingsResponseTask.addOnCompleteListener {
+            if ( it.isSuccessful ) { setGeofences() }
+        }
     }
 
+    private fun setGeofences() {
+        if (viewModel.geofenceIsActive()) return
+        removeGeofences()
+        viewModel.lugares.forEach { lugar ->
+            val geofence = Geofence.Builder()
+                .setRequestId(lugar.id.toString())
+                .setCircularRegion(lugar.latitude, lugar.longitude, GEOFENCE_RADIUS_IN_METERS)
+                .setExpirationDuration(GEOFENCE_EXPIRATION_IN_MILLISECONDS)
+                .setTransitionTypes(Geofence.GEOFENCE_TRANSITION_ENTER)
+                .build()
+            val geofencingRequest = GeofencingRequest.Builder()
+                .setInitialTrigger(GeofencingRequest.INITIAL_TRIGGER_ENTER)
+                .addGeofence(geofence)
+                .build()
+            geofencingClient.addGeofences(geofencingRequest, geofencePendingIntent)?.run {
+                addOnSuccessListener { viewModel.geofenceActivated() }
+                addOnFailureListener {
+                    Toast.makeText(applicationContext, "Lugares DESACTIVADOS", Toast.LENGTH_SHORT)
+                        .show()
+                }
+            }
+        }
+    }
 
+    private fun removeGeofences() {
+        if (!foregroundAndBackgroundLocationPermissionApproved()) {
+            return
+        }
+        geofencingClient.removeGeofences(geofencePendingIntent)?.run {
+            addOnSuccessListener {
+                // Geofences removed
+                Toast.makeText(applicationContext, "Adios Geofensas", Toast.LENGTH_SHORT)
+                    .show()
+            }
+            addOnFailureListener {
+                Toast.makeText(applicationContext, "No se pudieron borrar las Geofensas", Toast.LENGTH_SHORT)
+                    .show()
+            }
+        }
+    }
 }

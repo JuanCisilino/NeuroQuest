@@ -1,15 +1,19 @@
 package com.frost.neuroquest.ui.mapa
 
+import android.Manifest
 import android.annotation.SuppressLint
+import android.content.pm.PackageManager
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.core.app.ActivityCompat
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import com.frost.neuroquest.CurrentUser
 import com.frost.neuroquest.databinding.FragmentDashboardBinding
 import com.frost.neuroquest.hasPermission
+import com.frost.neuroquest.requestPermission
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
@@ -43,24 +47,36 @@ class DashboardFragment : Fragment(), OnMapReadyCallback {
         binding.map.onCreate(savedInstanceState)
         binding.map.getMapAsync(this)
     }
+
     override fun onDestroyView() {
         super.onDestroyView()
         googleMap.clear()
         _binding = null
     }
 
-    @SuppressLint("MissingPermission")
     override fun onMapReady(p0: GoogleMap) {
         googleMap = p0
-        if (hasPermission(requireContext())) googleMap.isMyLocationEnabled = true
+        if (ActivityCompat.checkSelfPermission(
+                requireContext(),
+                Manifest.permission.ACCESS_FINE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(
+                requireContext(),
+                Manifest.permission.ACCESS_COARSE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            return
+        }
+        googleMap.isMyLocationEnabled = true
         createAndShowMarkers()
     }
 
     private fun createAndShowMarkers() {
         val builder = LatLngBounds.Builder()
         CurrentUser.latLngList.forEach {
-            builder.include(it)
-            googleMap.addMarker(MarkerOptions().position(it))
+            builder.include(it.first)
+            val marker = MarkerOptions().position(it.first)
+            marker.title(it.second)
+            googleMap.addMarker(marker)
         }
         val bounds = builder.build()
         googleMap.animateCamera(CameraUpdateFactory.newLatLngBounds(bounds, 20))
@@ -69,6 +85,7 @@ class DashboardFragment : Fragment(), OnMapReadyCallback {
                 googleMap.animateCamera(CameraUpdateFactory.newLatLngBounds(bounds, 20))
                 false
             } else {
+                it.showInfoWindow()
                 googleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(it.position, 16F))
                 true
             }

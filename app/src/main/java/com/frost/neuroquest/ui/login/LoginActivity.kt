@@ -6,6 +6,9 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.ViewModelProvider
 import com.frost.neuroquest.*
 import com.frost.neuroquest.databinding.ActivityLoginBinding
+import com.frost.neuroquest.helpers.logEventAnalytics
+import com.frost.neuroquest.helpers.showAlert
+import com.frost.neuroquest.helpers.signInWithCredential
 import com.frost.neuroquest.model.User
 import com.frost.neuroquest.ui.LoadingDialog
 import com.google.android.gms.ads.AdRequest
@@ -59,7 +62,7 @@ class LoginActivity : AppCompatActivity() {
             goToMainActivity()
         }
         binding.googleButton.setOnClickListener { startGoogle() }
-        checkSession()
+//        checkSession()
     }
 
     private fun goToMainActivity(){
@@ -88,6 +91,7 @@ class LoginActivity : AppCompatActivity() {
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
         if (requestCode == GOOGLE_SIGN_IN){
+            loadingDialog.show(supportFragmentManager)
             val task = GoogleSignIn.getSignedInAccountFromIntent(data)
             try{
                 val account = task.getResult(ApiException::class.java)
