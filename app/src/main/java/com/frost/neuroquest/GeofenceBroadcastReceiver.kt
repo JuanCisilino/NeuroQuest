@@ -39,6 +39,7 @@ class GeofenceBroadcastReceiver: BroadcastReceiver() {
 
                 val lugar = CurrentUser.lugares[foundIndex]
                 CurrentUser.disponibles.add(lugar)
+                CurrentUser.puntos.add(lugar.id)
                 Toast.makeText(context, "Ingreso a ${lugar.nombre}", Toast.LENGTH_SHORT)
                     .show()
 

@@ -111,22 +111,25 @@ class MainActivity : AppCompatActivity() {
         val lugares = firebaseRemoteConfig.getString("lugares")
         if (CurrentUser.lugares.isEmpty()) CurrentUser.lugares = gson.fromJson(lugares, object : TypeToken<List<Places>>() {}.type)
         viewModel.lugares = CurrentUser.lugares
-        CurrentUser.puntos = getPuntos()
+        viewModel.geofensas = filter(viewModel.lugares as ArrayList<Places>)
         CurrentUser.generateLatLongList()
         if (!hasLocationPermission(this)) requestForegroundAndBackgroundLocationPermissions()
         else checkDeviceLocationSettingsAndStartGeofence()
     }
 
-    private fun getPuntos(): ArrayList<Int> {
-        val puntos = userPrefs.getString("Puntos")
-        return if (puntos != null && puntos.isNotEmpty()){ trimPuntos(puntos) } else { ArrayList() }
+    private fun filter(lugares: ArrayList<Places>): List<Places> {
+        val toRemove = ArrayList<Places>()
+        if (CurrentUser.puntos.isEmpty()) return listOf()
+        CurrentUser.puntos.forEach { id ->
+            val lugar = lugares.find { it.id == id }
+            lugar?.let {
+                CurrentUser.disponibles.add(it)
+                toRemove.add(it) }
+        }
+        lugares.removeAll(toRemove)
+        return lugares
     }
 
-    private fun trimPuntos(s: String):ArrayList<Int> {
-        TODO("Recortar s , " +
-                "dividirlo en una lista de numeros " +
-                "y despues manejarlo con los ids de la lista")
-    }
 
     override fun onRequestPermissionsResult(
         requestCode: Int,
@@ -190,32 +193,35 @@ class MainActivity : AppCompatActivity() {
                 }.show()
             }
         }
-        locationSettingsResponseTask.addOnCompleteListener {
-            if ( it.isSuccessful ) { setGeofences() }
-        }
+
+        locationSettingsResponseTask.addOnCompleteListener { if ( it.isSuccessful ) { setGeofences() } }
     }
 
     private fun setGeofences() {
         if (viewModel.geofenceIsActive()) return
         removeGeofences()
-        viewModel.lugares.forEach { lugar ->
-            val geofence = Geofence.Builder()
-                .setRequestId(lugar.id.toString())
-                .setCircularRegion(lugar.latitude, lugar.longitude, GEOFENCE_RADIUS_IN_METERS)
-                .setExpirationDuration(GEOFENCE_EXPIRATION_IN_MILLISECONDS)
-                .setTransitionTypes(Geofence.GEOFENCE_TRANSITION_ENTER)
-                .build()
-            val geofencingRequest = GeofencingRequest.Builder()
-                .setInitialTrigger(GeofencingRequest.INITIAL_TRIGGER_ENTER)
-                .addGeofence(geofence)
-                .build()
-            geofencingClient.addGeofences(geofencingRequest, geofencePendingIntent)?.run {
-                addOnSuccessListener { viewModel.geofenceActivated() }
-                addOnFailureListener {
-                    Toast.makeText(applicationContext, "Lugares DESACTIVADOS", Toast.LENGTH_SHORT)
-                        .show()
-                }
-            }
+
+        if (viewModel.geofensas.isEmpty()) viewModel.lugares.forEach { lugar -> setGeofence(lugar) }
+        else viewModel.geofensas.forEach { lugar -> setGeofence(lugar) }
+
+    }
+
+    private fun setGeofence(lugar: Places){
+        val geofence = Geofence.Builder()
+            .setRequestId(lugar.id.toString())
+            .setCircularRegion(lugar.latitude, lugar.longitude, GEOFENCE_RADIUS_IN_METERS)
+            .setExpirationDuration(GEOFENCE_EXPIRATION_IN_MILLISECONDS)
+            .setTransitionTypes(Geofence.GEOFENCE_TRANSITION_ENTER)
+            .build()
+
+        val geofencingRequest = GeofencingRequest.Builder()
+            .setInitialTrigger(GeofencingRequest.INITIAL_TRIGGER_ENTER)
+            .addGeofence(geofence)
+            .build()
+
+        geofencingClient.addGeofences(geofencingRequest, geofencePendingIntent)?.run {
+            addOnSuccessListener { viewModel.geofenceActivated() }
+            addOnFailureListener { Toast.makeText(applicationContext, "DESACTIVADOS", Toast.LENGTH_SHORT).show() }
         }
     }
 
@@ -223,16 +229,10 @@ class MainActivity : AppCompatActivity() {
         if (!foregroundAndBackgroundLocationPermissionApproved()) {
             return
         }
+
         geofencingClient.removeGeofences(geofencePendingIntent)?.run {
-            addOnSuccessListener {
-                // Geofences removed
-                Toast.makeText(applicationContext, "Adios Geofensas", Toast.LENGTH_SHORT)
-                    .show()
-            }
-            addOnFailureListener {
-                Toast.makeText(applicationContext, "No se pudieron borrar las Geofensas", Toast.LENGTH_SHORT)
-                    .show()
-            }
+            addOnSuccessListener { Toast.makeText(applicationContext, ".", Toast.LENGTH_SHORT).show() }
+            addOnFailureListener { Toast.makeText(applicationContext, "Err", Toast.LENGTH_SHORT).show() }
         }
     }
 }

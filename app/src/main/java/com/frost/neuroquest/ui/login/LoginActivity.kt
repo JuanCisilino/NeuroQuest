@@ -33,8 +33,8 @@ class LoginActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         MobileAds.initialize(this)
         setBinding()
-        setBtns()
         setAds()
+        setBtns()
     }
 
     private fun setAds() {
@@ -51,7 +51,7 @@ class LoginActivity : AppCompatActivity() {
         val usuario = viewModel.getUser()
         if (!usuario?.nombre.isNullOrEmpty()) {
             logEventAnalytics("Ingreso", usuario!!.email)
-            CurrentUser.saveCurrentUser(usuario.nombre, usuario.email)
+//            CurrentUser.saveCurrentUser(usuario.nombre, usuario.email)
             goToMainActivity()
         }
     }
@@ -112,12 +112,16 @@ class LoginActivity : AppCompatActivity() {
     }
 
     private fun validateAndContinue(account: GoogleSignInAccount) {
-        viewModel.save(
-            User(email = account.email?:"",
-                nombre = account.displayName?:"none",
-                puntos = "")
-        )
-        logEventAnalytics("Nuevo Usuario", account.email?:"")
+        val usuario = viewModel.getUser()
+        if (!usuario?.nombre.isNullOrEmpty()) {
+            logEventAnalytics("Ingreso", usuario!!.email)
+        } else {
+            viewModel.save(
+                User(email = account.email?:"",
+                    nombre = account.displayName?:"none",
+                    puntos = ""))
+            logEventAnalytics("Nuevo Usuario", account.email?:"")
+        }
         goToMainActivity()
     }
 }

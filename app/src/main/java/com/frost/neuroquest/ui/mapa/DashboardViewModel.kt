@@ -10,8 +10,8 @@ import com.google.android.gms.maps.model.LatLng
 class DashboardViewModel(state: SavedStateHandle) : ViewModel() {
     private val _geofenceIndex = state.getLiveData(GEOFENCE_INDEX_KEY, -1)
     private val _hintIndex = state.getLiveData(HINT_INDEX_KEY, 0)
-    var puntos = listOf<Int>()
     var lugares = listOf<Places>()
+    var geofensas = listOf<Places>()
 
     private val _text = MutableLiveData<String>().apply {
         value = "This is dashboard Fragment"
