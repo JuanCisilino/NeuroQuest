@@ -19,6 +19,24 @@ class HomeViewModel : ViewModel() {
         userPrefs = UserPrefs(context)
     }
 
+    fun setCharacters(){
+        if (CurrentUser.persSaved) return
+        CurrentUser.disponibles.forEach { lugar ->
+            lugar.personjes.forEach { pers ->
+                val personaje = Places(
+                    id = 0,
+                    nombre = pers.nombre,
+                    latitude = 0.0,
+                    longitude = 0.0,
+                    image_url = pers.url,
+                    url = pers.url,
+                    personjes = ArrayList())
+                CurrentUser.disponibles.add(personaje)
+            }
+        }
+        CurrentUser.persSaved = true
+    }
+
     fun containsOrAdd(lugares: List<Places>){
         if (CurrentUser.puntos.isEmpty()) return
         lugares.forEach {

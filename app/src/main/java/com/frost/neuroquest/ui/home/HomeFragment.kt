@@ -48,12 +48,14 @@ class HomeFragment : Fragment() {
         viewModel.setUserPrefs(requireContext())
         adapter = HomeAdapter()
         adapter.onPlaceClickCallback = { openWebView(it) }
+        viewModel.setCharacters()
         adapter.setList(CurrentUser.disponibles, requireContext())
         viewModel.containsOrAdd(CurrentUser.disponibles)
     }
 
     override fun onResume() {
         super.onResume()
+        viewModel.setCharacters()
         adapter.setList(CurrentUser.disponibles, requireContext())
         viewModel.containsOrAdd(CurrentUser.disponibles)
     }

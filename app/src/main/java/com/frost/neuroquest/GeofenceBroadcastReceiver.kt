@@ -7,6 +7,9 @@ import android.content.Intent
 import android.util.Log
 import android.widget.Toast
 import androidx.core.content.ContextCompat
+import com.frost.neuroquest.CurrentUser.Companion.nombre
+import com.frost.neuroquest.model.Personaje
+import com.frost.neuroquest.model.Places
 import com.google.android.gms.location.Geofence
 import com.google.android.gms.location.GeofencingEvent
 
@@ -39,6 +42,7 @@ class GeofenceBroadcastReceiver: BroadcastReceiver() {
 
                 val lugar = CurrentUser.lugares[foundIndex]
                 CurrentUser.disponibles.add(lugar)
+                CurrentUser.persSaved = false
                 CurrentUser.puntos.add(lugar.id)
                 Toast.makeText(context, "Ingreso a ${lugar.nombre}", Toast.LENGTH_SHORT)
                     .show()

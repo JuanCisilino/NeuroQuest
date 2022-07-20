@@ -7,5 +7,11 @@ data class Places(
     val latitude : Double,
     val longitude : Double,
     val image_url: String,
+    val url: String,
+    val personjes: ArrayList<Personaje>
+)
+
+data class Personaje(
+    val nombre: String,
     val url: String
 )

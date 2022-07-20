@@ -14,6 +14,7 @@ class CurrentUser: Application(){
         var lugares = ArrayList<Places>()
         var disponibles = ArrayList<Places>()
         var latLngList = ArrayList<Pair<LatLng, String>>()
+        var persSaved = true
 
         fun saveCurrentUser(name: String, mail: String, punto: String){
             this.nombre = name
