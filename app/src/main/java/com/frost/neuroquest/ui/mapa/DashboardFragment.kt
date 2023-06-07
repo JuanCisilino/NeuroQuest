@@ -1,7 +1,6 @@
 package com.frost.neuroquest.ui.mapa
 
 import android.Manifest
-import android.annotation.SuppressLint
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -12,8 +11,6 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import com.frost.neuroquest.CurrentUser
 import com.frost.neuroquest.databinding.FragmentDashboardBinding
-import com.frost.neuroquest.hasPermission
-import com.frost.neuroquest.requestPermission
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
@@ -23,14 +20,10 @@ import com.google.android.gms.maps.model.MarkerOptions
 
 class DashboardFragment : Fragment(), OnMapReadyCallback {
 
-    private var _binding: FragmentDashboardBinding? = null
+    private lateinit var binding: FragmentDashboardBinding
     private lateinit var googleMap: GoogleMap
     private lateinit var viewModel: DashboardViewModel
     private var isZoomed = false
-
-    // This property is only valid between onCreateView and
-    // onDestroyView.
-    private val binding get() = _binding!!
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -38,7 +31,7 @@ class DashboardFragment : Fragment(), OnMapReadyCallback {
         savedInstanceState: Bundle?
     ): View {
         viewModel = ViewModelProvider(this)[DashboardViewModel::class.java]
-        _binding = FragmentDashboardBinding.inflate(inflater, container, false)
+        binding = FragmentDashboardBinding.inflate(inflater, container, false)
         return binding.root
     }
 
@@ -51,7 +44,6 @@ class DashboardFragment : Fragment(), OnMapReadyCallback {
     override fun onDestroyView() {
         super.onDestroyView()
         googleMap.clear()
-        _binding = null
     }
 
     override fun onMapReady(p0: GoogleMap) {

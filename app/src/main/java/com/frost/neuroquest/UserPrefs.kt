@@ -8,6 +8,8 @@ class UserPrefs(val context: Context) {
     private val userSharedPref: SharedPreferences
     by lazy { context.getSharedPreferences(context.getString(R.string.shared_pref_name), Context.MODE_PRIVATE) }
 
+    var url: String = ""
+
     /**
      * Convenient method to check if a preference exists or not. <br/>
      *

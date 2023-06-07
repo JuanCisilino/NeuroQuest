@@ -12,6 +12,12 @@
         tools:layout="@layout/fragment_home" />
 
     <fragment
+        android:id="@+id/navigation_qr"
+        android:name="com.frost.neuroquest.ui.qr.QRScannerFragment"
+        android:label="@string/title_qr"
+        tools:layout="@layout/fragment_q_r_scanner" />
+
+    <fragment
         android:id="@+id/navigation_dashboard"
         android:name="com.frost.neuroquest.ui.mapa.DashboardFragment"
         android:label="@string/title_dashboard"

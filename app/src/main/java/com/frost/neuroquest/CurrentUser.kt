@@ -22,7 +22,7 @@ class CurrentUser: Application(){
             this.puntos = split(punto)
         }
 
-        private fun split(puntos: String): ArrayList<Int> {
+        fun split(puntos: String): ArrayList<Int> {
             if (puntos == "") return ArrayList()
             val lista = ArrayList<Int>()
             listOf(*puntos.split(",").toTypedArray()).forEach { lista.add(it.toInt()) }

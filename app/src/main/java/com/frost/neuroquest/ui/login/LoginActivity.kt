@@ -20,6 +20,7 @@ import com.google.android.gms.common.api.ApiException
 import com.google.firebase.auth.GoogleAuthProvider
 
 
+@Suppress("DEPRECATION")
 class LoginActivity : AppCompatActivity() {
 
     private val viewModel by lazy { ViewModelProvider(this)[LoginViewModel::class.java] }
@@ -33,13 +34,7 @@ class LoginActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         MobileAds.initialize(this)
         setBinding()
-        setAds()
         setBtns()
-    }
-
-    private fun setAds() {
-        val adRequest: AdRequest = AdRequest.Builder().build()
-        binding.adView.loadAd(adRequest)
     }
 
     private fun splash() {
@@ -59,7 +54,7 @@ class LoginActivity : AppCompatActivity() {
     private fun setBtns() {
         binding.btn.setOnClickListener {
             loadingDialog.show(supportFragmentManager)
-            goToMainActivity()
+            validateAndContinue()
         }
         binding.googleButton.setOnClickListener { startGoogle() }
 //        checkSession()
@@ -111,16 +106,16 @@ class LoginActivity : AppCompatActivity() {
         }
     }
 
-    private fun validateAndContinue(account: GoogleSignInAccount) {
+    private fun validateAndContinue(account: GoogleSignInAccount?= null) {
         val usuario = viewModel.getUser()
         if (!usuario?.nombre.isNullOrEmpty()) {
             logEventAnalytics("Ingreso", usuario!!.email)
         } else {
             viewModel.save(
-                User(email = account.email?:"",
-                    nombre = account.displayName?:"none",
+                User(email = account?.email?:"",
+                    nombre = account?.displayName?:"",
                     puntos = ""))
-            logEventAnalytics("Nuevo Usuario", account.email?:"")
+            logEventAnalytics("Nuevo Usuario", account?.email?:"")
         }
         goToMainActivity()
     }
