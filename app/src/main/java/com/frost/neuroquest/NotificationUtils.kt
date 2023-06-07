@@ -16,7 +16,6 @@ fun createChannel(context: Context) {
         val notificationChannel = NotificationChannel(
             CHANNEL_ID,
             "GeofenceStatus",
-
             NotificationManager.IMPORTANCE_HIGH
         )
             .apply {
@@ -41,6 +40,7 @@ fun createChannel(context: Context) {
 fun NotificationManager.sendGeofenceEnteredNotification(context: Context, foundIndex: Int) {
     val contentIntent = Intent(context, MainActivity::class.java)
     contentIntent.putExtra(GeofencingConstants.EXTRA_GEOFENCE_INDEX, foundIndex)
+    contentIntent.putExtra(GeofencingConstants.GEOFENCE_RADIUS_IN_METERS, 100f)
     val contentPendingIntent = PendingIntent.getActivity(
         context,
         NOTIFICATION_ID,

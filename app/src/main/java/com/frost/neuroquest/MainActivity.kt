@@ -1,5 +1,6 @@
 package com.frost.neuroquest
 
+import android.Manifest
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
@@ -14,8 +15,11 @@ import android.widget.Toast
 import androidx.annotation.RequiresApi
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.ActivityCompat
 import androidx.lifecycle.ViewModelProvider
+import androidx.navigation.NavController
 import androidx.navigation.findNavController
+import androidx.navigation.fragment.findNavController
 import androidx.navigation.ui.AppBarConfiguration
 import androidx.navigation.ui.setupActionBarWithNavController
 import androidx.navigation.ui.setupWithNavController
@@ -33,6 +37,7 @@ import com.google.firebase.remoteconfig.FirebaseRemoteConfigSettings
 import com.google.firebase.remoteconfig.ktx.remoteConfig
 import com.google.gson.GsonBuilder
 import com.google.gson.reflect.TypeToken
+import com.google.zxing.integration.android.IntentIntegrator
 import java.util.concurrent.TimeUnit
 
 class MainActivity : AppCompatActivity() {
@@ -52,6 +57,7 @@ class MainActivity : AppCompatActivity() {
     private val BACKGROUND_LOCATION_PERMISSION_INDEX = 1
     private lateinit var viewModel : DashboardViewModel
     private lateinit var geofencingClient: GeofencingClient
+    private lateinit var navController: NavController
     private val firebaseRemoteConfig = Firebase.remoteConfig
     private val gson = GsonBuilder().create()
     private val userPrefs = UserPrefs(this)
@@ -76,11 +82,11 @@ class MainActivity : AppCompatActivity() {
 
         val navView: BottomNavigationView = binding.navView
 
-        val navController = findNavController(R.id.nav_host_fragment_activity_main)
+        navController = findNavController(R.id.nav_host_fragment_activity_main)
         // Passing each menu ID as a set of Ids because each
         // menu should be considered as top level destinations.
         val appBarConfiguration = AppBarConfiguration(
-            setOf(R.id.navigation_home, R.id.navigation_dashboard)
+            setOf(R.id.navigation_home,R.id.navigation_qr, R.id.navigation_dashboard)
         )
         setupActionBarWithNavController(navController, appBarConfiguration)
         navView.setupWithNavController(navController)
@@ -219,6 +225,12 @@ class MainActivity : AppCompatActivity() {
             .addGeofence(geofence)
             .build()
 
+        if (ActivityCompat.checkSelfPermission(
+                this,
+                Manifest.permission.ACCESS_FINE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED
+        ) return
+
         geofencingClient.addGeofences(geofencingRequest, geofencePendingIntent)?.run {
             addOnSuccessListener { viewModel.geofenceActivated() }
             addOnFailureListener { Toast.makeText(applicationContext, "DESACTIVADOS", Toast.LENGTH_SHORT).show() }
@@ -235,4 +247,26 @@ class MainActivity : AppCompatActivity() {
             addOnFailureListener { Toast.makeText(applicationContext, "Err", Toast.LENGTH_SHORT).show() }
         }
     }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+
+        val result = IntentIntegrator.parseActivityResult(requestCode, resultCode, data)
+        result
+            ?.let {
+                result.contents
+                    ?.let {
+                        Toast.makeText(this, it, Toast.LENGTH_SHORT).show()
+                        userPrefs.save("url", it)
+                        navController.navigate(R.id.navigation_qr)
+                    }
+                    ?:run {
+                        navController.navigate(R.id.navigation_home)
+                    }
+            }
+            ?:run {
+                super.onActivityResult(requestCode, resultCode, data)
+            }
+
+    }
+
 }

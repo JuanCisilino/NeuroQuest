@@ -15,13 +15,9 @@ import com.frost.neuroquest.model.Places
 
 class HomeFragment : Fragment() {
 
-    private var _binding: FragmentHomeBinding? = null
+    private lateinit var binding: FragmentHomeBinding
     private lateinit var viewModel: HomeViewModel
     private lateinit var adapter : HomeAdapter
-
-    // This property is only valid between onCreateView and
-    // onDestroyView.
-    private val binding get() = _binding!!
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -29,7 +25,7 @@ class HomeFragment : Fragment() {
         savedInstanceState: Bundle?
     ): View {
         viewModel = ViewModelProvider(this)[HomeViewModel::class.java]
-        _binding = FragmentHomeBinding.inflate(inflater, container, false)
+        binding = FragmentHomeBinding.inflate(inflater, container, false)
         return binding.root
     }
 
@@ -48,16 +44,10 @@ class HomeFragment : Fragment() {
         viewModel.setUserPrefs(requireContext())
         adapter = HomeAdapter()
         adapter.onPlaceClickCallback = { openWebView(it) }
+        viewModel.prepareCharactersAndPlaces()
         viewModel.setCharacters()
-        adapter.setList(CurrentUser.disponibles, requireContext())
         viewModel.containsOrAdd(CurrentUser.disponibles)
-    }
-
-    override fun onResume() {
-        super.onResume()
-        viewModel.setCharacters()
         adapter.setList(CurrentUser.disponibles, requireContext())
-        viewModel.containsOrAdd(CurrentUser.disponibles)
     }
 
     private fun openWebView(it: Places) {
@@ -65,8 +55,4 @@ class HomeFragment : Fragment() {
         startActivity(browserIntent)
     }
 
-    override fun onDestroyView() {
-        super.onDestroyView()
-        _binding = null
-    }
 }
