@@ -6,6 +6,9 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.ViewModelProvider
 import com.frost.neuroquest.*
 import com.frost.neuroquest.databinding.ActivityLoginBinding
+import com.frost.neuroquest.helpers.logEventAnalytics
+import com.frost.neuroquest.helpers.showAlert
+import com.frost.neuroquest.helpers.signInWithCredential
 import com.frost.neuroquest.model.User
 import com.frost.neuroquest.ui.LoadingDialog
 import com.google.android.gms.ads.AdRequest
@@ -17,6 +20,7 @@ import com.google.android.gms.common.api.ApiException
 import com.google.firebase.auth.GoogleAuthProvider
 
 
+@Suppress("DEPRECATION")
 class LoginActivity : AppCompatActivity() {
 
     private val viewModel by lazy { ViewModelProvider(this)[LoginViewModel::class.java] }
@@ -31,12 +35,6 @@ class LoginActivity : AppCompatActivity() {
         MobileAds.initialize(this)
         setBinding()
         setBtns()
-        setAds()
-    }
-
-    private fun setAds() {
-        val adRequest: AdRequest = AdRequest.Builder().build()
-        binding.adView.loadAd(adRequest)
     }
 
     private fun splash() {
@@ -48,7 +46,7 @@ class LoginActivity : AppCompatActivity() {
         val usuario = viewModel.getUser()
         if (!usuario?.nombre.isNullOrEmpty()) {
             logEventAnalytics("Ingreso", usuario!!.email)
-            CurrentUser.saveCurrentUser(usuario.nombre, usuario.email)
+//            CurrentUser.saveCurrentUser(usuario.nombre, usuario.email)
             goToMainActivity()
         }
     }
@@ -56,10 +54,10 @@ class LoginActivity : AppCompatActivity() {
     private fun setBtns() {
         binding.btn.setOnClickListener {
             loadingDialog.show(supportFragmentManager)
-            goToMainActivity()
+            validateAndContinue()
         }
         binding.googleButton.setOnClickListener { startGoogle() }
-        checkSession()
+//        checkSession()
     }
 
     private fun goToMainActivity(){
@@ -88,6 +86,7 @@ class LoginActivity : AppCompatActivity() {
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
         if (requestCode == GOOGLE_SIGN_IN){
+            loadingDialog.show(supportFragmentManager)
             val task = GoogleSignIn.getSignedInAccountFromIntent(data)
             try{
                 val account = task.getResult(ApiException::class.java)
@@ -107,13 +106,17 @@ class LoginActivity : AppCompatActivity() {
         }
     }
 
-    private fun validateAndContinue(account: GoogleSignInAccount) {
-        viewModel.save(
-            User(email = account.email?:"",
-                nombre = account.displayName?:"none",
-                puntos = "")
-        )
-        logEventAnalytics("Nuevo Usuario", account.email?:"")
+    private fun validateAndContinue(account: GoogleSignInAccount?= null) {
+        val usuario = viewModel.getUser()
+        if (!usuario?.nombre.isNullOrEmpty()) {
+            logEventAnalytics("Ingreso", usuario!!.email)
+        } else {
+            viewModel.save(
+                User(email = account?.email?:"",
+                    nombre = account?.displayName?:"",
+                    puntos = ""))
+            logEventAnalytics("Nuevo Usuario", account?.email?:"")
+        }
         goToMainActivity()
     }
 }

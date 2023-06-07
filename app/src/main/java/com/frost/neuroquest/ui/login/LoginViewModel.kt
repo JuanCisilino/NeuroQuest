@@ -22,14 +22,16 @@ class LoginViewModel: ViewModel() {
         userPrefs.save(contextApp.getString(R.string.shared_pref_email), user.email)
         userPrefs.save(contextApp.getString(R.string.shared_pref_name), user.nombre)
         userPrefs.save(contextApp.getString(R.string.shared_pref_points), user.puntos)
-        CurrentUser.saveCurrentUser(user.nombre, user.email)
+        CurrentUser.saveCurrentUser(user.nombre, user.email, user.puntos)
     }
 
     fun getUser(): User? {
         val puntos = userPrefs.getString(contextApp.getString(R.string.shared_pref_points))
         val email = userPrefs.getString(contextApp.getString(R.string.shared_pref_email))
         val nombre = userPrefs.getString(contextApp.getString(R.string.shared_pref_name))
-        nombre?.let { return User(nombre = it, email = email!!, puntos = puntos!!) }
+        nombre?.let {
+            CurrentUser.saveCurrentUser(it,email?:"", puntos?:"")
+            return User(nombre = it, email = email?:"", puntos = puntos?:"") }
             ?:run { return null }
     }
 }
